@@ -1,4 +1,3 @@
-import Clipboard from '@react-native-clipboard/clipboard';
 import React, {
   forwardRef,
   RefObject,
@@ -27,11 +26,7 @@ import OtpInput from './OtpInput';
 import reducer from './reducer';
 import { OtpInputsRef, SupportedKeyboardType } from './types';
 
-const supportAutofillFromClipboard =
-  Platform.OS === 'android' || parseInt(Platform.Version as string, 10) < 14;
-
 type Props = TextInputProps & {
-  autofillFromClipboard: boolean;
   autofillListenerIntervalMS?: number;
   keyboardType?: SupportedKeyboardType;
   style?: StyleProp<ViewStyle>;
@@ -58,7 +53,6 @@ const OtpInputs = forwardRef<OtpInputsRef, Props>(
   (
     {
       autoFocus,
-      autofillFromClipboard = supportAutofillFromClipboard,
       autofillListenerIntervalMS = 1000,
       autoCapitalize = 'none',
       clearTextOnFocus = false,
@@ -107,7 +101,6 @@ const OtpInputs = forwardRef<OtpInputsRef, Props>(
           dispatch({ type: 'clearOtp', payload: numberOfInputs });
           inputs.current.forEach((input) => input?.current?.clear());
           previousCopiedText.current = '';
-          Clipboard.setString('');
         },
         focus: (): void => {
           const firstInput = inputs.current[0];
@@ -200,34 +193,6 @@ const OtpInputs = forwardRef<OtpInputsRef, Props>(
       },
       [numberOfInputs],
     );
-
-    const listenOnCopiedText = useCallback(async (): Promise<void> => {
-      const copiedText = await Clipboard.getString();
-      const otpCodeValue = Object.values(otpCode).join('');
-
-      if (
-        copiedText?.length === numberOfInputs &&
-        copiedText !== otpCodeValue &&
-        copiedText !== previousCopiedText.current
-      ) {
-        previousCopiedText.current = copiedText;
-        fillInputs(copiedText);
-      }
-    }, [fillInputs, numberOfInputs, otpCode]);
-
-    useEffect(() => {
-      let interval: NodeJS.Timeout;
-
-      if (autofillFromClipboard) {
-        interval = setInterval(() => {
-          listenOnCopiedText();
-        }, autofillListenerIntervalMS);
-      }
-
-      return () => {
-        clearInterval(interval);
-      };
-    }, [autofillFromClipboard, autofillListenerIntervalMS, listenOnCopiedText, numberOfInputs]);
 
     const renderInputs = (): Array<JSX.Element> => {
       const iterationArray = Array<number>(numberOfInputs).fill(0);
